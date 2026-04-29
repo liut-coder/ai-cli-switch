@@ -15,14 +15,16 @@ provider_default_base_url() {
         ollama) printf "http://127.0.0.1:11434/v1\n" ;;
         openrouter) printf "https://openrouter.ai/api/v1\n" ;;
         openai-compatible) printf "https://api.openai.com/v1\n" ;;
+        anthropic) printf "https://api.anthropic.com\n" ;;
         *) printf "\n" ;;
     esac
 }
 
 provider_default_targets_json() {
     case "$(ai_normalize_provider "$1")" in
-        gemini) printf '["codex","gemini"]\n' ;;
-        *) printf '["codex"]\n' ;;
+        gemini) printf '["codex","gemini","claude"]\n' ;;
+        anthropic) printf '["claude"]\n' ;;
+        *) printf '["codex","claude"]\n' ;;
     esac
 }
 
@@ -40,6 +42,9 @@ provider_supports_target() {
             ;;
         gemini)
             [[ "$provider" == "gemini" ]] && return 0 || return 1
+            ;;
+        claude)
+            return 0
             ;;
         *)
             return 1

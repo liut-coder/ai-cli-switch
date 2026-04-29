@@ -16,6 +16,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$SCRIPT_DIR/lib/cli/codex.sh"
 # shellcheck source=lib/cli/gemini.sh
 . "$SCRIPT_DIR/lib/cli/gemini.sh"
+# shellcheck source=lib/cli/claude.sh
+. "$SCRIPT_DIR/lib/cli/claude.sh"
 
 main() {
     case "${1:-}" in
@@ -43,6 +45,24 @@ main() {
             [[ $# -ge 3 && $# -le 5 ]] || ai_die "用法: --add-glm NAME API_KEY [BASE_URL] [MODEL]"
             save_profile "$2" "openai-compatible" "${5:-glm-5.1}" "${4:-https://api.z.ai/api/paas/v4/}" "$3" '["codex"]'
             ai_info "已保存 GLM profile '$2'"
+            ;;
+        --add-claude-gemini)
+            init_store
+            [[ $# -ge 4 && $# -le 5 ]] || ai_die "用法: --add-claude-gemini NAME API_KEY BASE_URL [MODEL]"
+            save_profile "$2" "anthropic" "${5:-gemini-3.1-pro-preview}" "$4" "$3" '["claude"]'
+            ai_info "已保存 Claude/Gemini proxy profile '$2'"
+            ;;
+        --add-claude-proxy)
+            init_store
+            [[ $# -ge 4 && $# -le 6 ]] || ai_die "用法: --add-claude-proxy NAME API_KEY BASE_URL [MODEL] [SMALL_MODEL]"
+            save_profile "$2" "anthropic" "${5:-claude-sonnet-4-20250514}" "$4" "$3" '["claude"]' "${6:-}"
+            ai_info "已保存 Claude proxy profile '$2'"
+            ;;
+        --add-claude-proxy)
+            init_store
+            [[ $# -ge 4 && $# -le 6 ]] || ai_die "用法: --add-claude-proxy NAME API_KEY BASE_URL [MODEL] [SMALL_MODEL]"
+            save_profile "$2" "anthropic" "${5:-claude-sonnet-4-20250514}" "$4" "$3" '["claude"]' "${6:-}"
+            ai_info "已保存 Claude proxy profile '$2'"
             ;;
         --import-template)
             init_store

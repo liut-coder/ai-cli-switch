@@ -18,10 +18,12 @@ select_target_interactive() {
     local choice
     printf "1) codex\n"
     printf "2) gemini\n"
-    read -r -p "选择 target [1-2]: " choice
+    printf "3) claude\n"
+    read -r -p "选择 target [1-3]: " choice
     case "$choice" in
         1) printf "codex\n" ;;
         2) printf "gemini\n" ;;
+        3) printf "claude\n" ;;
         *) ai_die "无效 target" ;;
     esac
 }
@@ -58,11 +60,15 @@ add_profile_interactive() {
     printf "1) 使用 provider 默认值\n"
     printf "2) 仅 codex\n"
     printf "3) 仅 gemini\n"
-    read -r -p "请选择 [1-3, 默认 1]: " target_choice
+    printf "4) 仅 claude\n"
+    printf "5) codex + claude\n"
+    read -r -p "请选择 [1-5, 默认 1]: " target_choice
     case "${target_choice:-1}" in
         1) targets_json="$(provider_default_targets_json "$provider")" ;;
         2) targets_json='["codex"]' ;;
         3) targets_json='["gemini"]' ;;
+        4) targets_json='["claude"]' ;;
+        5) targets_json='["codex","claude"]' ;;
         *) targets_json="$(provider_default_targets_json "$provider")" ;;
     esac
 
@@ -89,13 +95,19 @@ edit_profile_interactive() {
     printf "1) 保持不变\n"
     printf "2) 仅 codex\n"
     printf "3) 仅 gemini\n"
-    printf "4) codex + gemini\n"
-    read -r -p "请选择 [1-4, 默认 1]: " target_choice
+    printf "4) 仅 claude\n"
+    printf "5) codex + gemini\n"
+    printf "6) codex + claude\n"
+    printf "7) 全部 (codex + gemini + claude)\n"
+    read -r -p "请选择 [1-7, 默认 1]: " target_choice
     case "${target_choice:-1}" in
         1) targets_json="" ;;
         2) targets_json='["codex"]' ;;
         3) targets_json='["gemini"]' ;;
-        4) targets_json='["codex","gemini"]' ;;
+        4) targets_json='["claude"]' ;;
+        5) targets_json='["codex","gemini"]' ;;
+        6) targets_json='["codex","claude"]' ;;
+        7) targets_json='["codex","gemini","claude"]' ;;
         *) targets_json="" ;;
     esac
 
@@ -138,6 +150,7 @@ apply_current_profile() {
     case "$target" in
         codex) apply_codex_target "$profile" ;;
         gemini) apply_gemini_target "$profile" ;;
+        claude) apply_claude_target "$profile" ;;
         *) ai_die "不支持的 target: $target" ;;
     esac
 }
@@ -148,6 +161,7 @@ install_current_target() {
     case "$target" in
         codex) install_codex_target ;;
         gemini) install_gemini_target ;;
+        claude) install_claude_target ;;
         *) ai_die "不支持的 target: $target" ;;
     esac
 }
@@ -158,6 +172,7 @@ launch_current_target() {
     case "$target" in
         codex) launch_codex_target ;;
         gemini) launch_gemini_target ;;
+        claude) launch_claude_target ;;
         *) ai_die "不支持的 target: $target" ;;
     esac
 }
@@ -191,29 +206,48 @@ import_template_interactive() {
 }
 
 test_current_profile() {
-    local profile_json profile provider base_url api_key endpoint http_code
+    local profile_json profile provider base_url api_key target endpoint http_code
     profile="$(get_current_profile)"
     [[ -n "$profile" ]] || ai_die "当前没有选中 profile"
     profile_json="$(get_profile_json "$profile")"
     provider="$(jq -r '.provider' <<<"$profile_json")"
     base_url="$(jq -r '.base_url' <<<"$profile_json")"
     api_key="$(jq -r '.api_key' <<<"$profile_json")"
-    endpoint="${base_url%/}/models"
+    target="$(get_current_target)"
 
     ai_require_cmd curl "缺少 curl"
-    ai_info "测试 provider '$provider': $endpoint"
 
-    http_code="$(
-        curl -sS -o /tmp/ai-switch-test.out -w '%{http_code}' \
-            -H "Authorization: Bearer $api_key" \
-            -H 'Content-Type: application/json' \
-            "$endpoint" || true
-    )"
+    if [[ "$target" == "claude" || "$provider" == "anthropic" ]]; then
+        endpoint="${base_url%/}/v1/messages"
+        ai_info "测试 Anthropic 兼容接口: $endpoint"
+        http_code="$(
+            curl -sS -o /tmp/ai-switch-test.out -w '%{http_code}' \
+                -X POST \
+                -H "x-api-key: $api_key" \
+                -H "anthropic-version: 2023-06-01" \
+                -H 'Content-Type: application/json' \
+                -d '{"model":"claude-sonnet-4-20250514","max_tokens":1,"messages":[{"role":"user","content":"hi"}]}' \
+                "$endpoint" || true
+        )"
+    else
+        endpoint="${base_url%/}/models"
+        ai_info "测试 provider '$provider': $endpoint"
+        http_code="$(
+            curl -sS -o /tmp/ai-switch-test.out -w '%{http_code}' \
+                -H "Authorization: Bearer $api_key" \
+                -H 'Content-Type: application/json' \
+                "$endpoint" || true
+        )"
+    fi
 
     if [[ "$http_code" == "200" ]]; then
-        ai_info "连接成功"
+        ai_info "连接成功 (HTTP $http_code)"
+    elif [[ "$http_code" =~ ^[245] ]]; then
+        ai_info "服务可达 (HTTP $http_code)"
+        [[ -f /tmp/ai-switch-test.out ]] && cat /tmp/ai-switch-test.out
     else
         ai_warn "连接失败: HTTP $http_code"
+        [[ -f /tmp/ai-switch-test.out ]] && cat /tmp/ai-switch-test.out
     fi
 }
 
@@ -246,6 +280,8 @@ Options:
   --add-profile NAME PROVIDER MODEL BASE_URL API_KEY TARGETS
   --add-gemini NAME API_KEY [BASE_URL] [MODEL]
   --add-glm NAME API_KEY [BASE_URL] [MODEL]
+  --add-claude-gemini NAME API_KEY BASE_URL [MODEL]
+  --add-claude-proxy NAME API_KEY BASE_URL [MODEL] [SMALL_MODEL]
   --import-template TEMPLATE_NAME PROFILE_NAME API_KEY
   --show-profile NAME
   --update-profile NAME [PROVIDER] [MODEL] [BASE_URL] [API_KEY] [TARGETS]
@@ -260,9 +296,15 @@ Options:
   --help
 
 Notes:
-  TARGET 支持: codex, gemini
-  TARGETS 传 JSON 数组，例如: '["codex","gemini"]'
-  TEMPLATE_NAME 例如: gemini-flash, glm-5.1, ollama-local, openrouter-free
+  TARGET 支持: codex, gemini, claude
+  TARGETS 传 JSON 数组，例如: '["codex","gemini","claude"]'
+  TEMPLATE_NAME 例如: gemini-flash, glm-5.1, ollama-local, openrouter-free, claude-proxy
+
+Claude Code 中转:
+  --add-claude-proxy 用于添加 Anthropic 兼容的中转 API
+  apply 后会设置: ANTHROPIC_BASE_URL, ANTHROPIC_API_KEY, ANTHROPIC_MODEL,
+                   ANTHROPIC_SMALL_FAST_MODEL, ENABLE_TOOL_SEARCH
+  使用 --launch claude 会自动 source env 并启动 claude
 EOF
 }
 

@@ -22,7 +22,7 @@ get_profile_json() {
 
 show_profile_detail() {
     local name="$1"
-    local profile
+    local profile small_model
     profile="$(get_profile_json "$name")"
     printf "name=%s\n" "$name"
     printf "provider=%s\n" "$(jq -r '.provider' <<<"$profile")"
@@ -30,6 +30,8 @@ show_profile_detail() {
     printf "base_url=%s\n" "$(jq -r '.base_url' <<<"$profile")"
     printf "api_key=%s\n" "$(jq -r '.api_key' <<<"$profile")"
     printf "targets=%s\n" "$(jq -c '.targets' <<<"$profile")"
+    small_model="$(jq -r '.small_model // ""' <<<"$profile")"
+    [[ -n "$small_model" ]] && printf "small_model=%s\n" "$small_model"
 }
 
 save_profile() {
@@ -39,6 +41,7 @@ save_profile() {
     local base_url="$4"
     local api_key="$5"
     local targets_json="$6"
+    local small_model="${7:-}"
 
     provider="$(ai_normalize_provider "$provider")"
 
@@ -49,13 +52,15 @@ save_profile() {
         --arg base_url "$base_url" \
         --arg api_key "$api_key" \
         --argjson targets "$targets_json" \
+        --arg small_model "$small_model" \
         '.[$name] = {
             name:$name,
             provider:$provider,
             model:$model,
             base_url:$base_url,
             api_key:$api_key,
-            targets:$targets
+            targets:$targets,
+            small_model:$small_model
         }' \
         "$AI_SWITCH_PROFILES_FILE" > "${AI_SWITCH_PROFILES_FILE}.tmp"
     mv "${AI_SWITCH_PROFILES_FILE}.tmp" "$AI_SWITCH_PROFILES_FILE"
@@ -68,6 +73,7 @@ update_profile() {
     local base_url="$4"
     local api_key="$5"
     local targets_json="$6"
+    local small_model="${7:-}"
     local profile
 
     profile_exists "$name" || ai_die "Profile '$name' 不存在"
@@ -78,8 +84,9 @@ update_profile() {
     base_url="${base_url:-$(jq -r '.base_url' <<<"$profile")}"
     api_key="${api_key:-$(jq -r '.api_key' <<<"$profile")}"
     targets_json="${targets_json:-$(jq -c '.targets' <<<"$profile")}"
+    small_model="${small_model:-$(jq -r '.small_model // ""' <<<"$profile")}"
 
-    save_profile "$name" "$provider" "$model" "$base_url" "$api_key" "$targets_json"
+    save_profile "$name" "$provider" "$model" "$base_url" "$api_key" "$targets_json" "$small_model"
 }
 
 delete_profile() {
