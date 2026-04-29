@@ -70,6 +70,39 @@ add_profile_interactive() {
     ai_info "已保存 profile '$name'"
 }
 
+edit_profile_interactive() {
+    local name="$1"
+    local profile provider model base_url api_key targets_json target_choice
+
+    profile="$(get_profile_json "$name")"
+    provider="$(ai_prompt_default 'Provider' "$(jq -r '.provider' <<<"$profile")")"
+    provider="$(ai_normalize_provider "$provider")"
+    model="$(ai_prompt_default '模型' "$(jq -r '.model' <<<"$profile")")"
+    base_url="$(ai_prompt_default 'Base URL' "$(jq -r '.base_url' <<<"$profile")")"
+    if [[ "$provider" == "ollama" ]]; then
+        read -r -p "API Key [留空保持不变，可为空]: " api_key
+    else
+        read -r -p "API Key [留空保持不变]: " api_key
+    fi
+
+    printf "目标 targets:\n"
+    printf "1) 保持不变\n"
+    printf "2) 仅 codex\n"
+    printf "3) 仅 gemini\n"
+    printf "4) codex + gemini\n"
+    read -r -p "请选择 [1-4, 默认 1]: " target_choice
+    case "${target_choice:-1}" in
+        1) targets_json="" ;;
+        2) targets_json='["codex"]' ;;
+        3) targets_json='["gemini"]' ;;
+        4) targets_json='["codex","gemini"]' ;;
+        *) targets_json="" ;;
+    esac
+
+    update_profile "$name" "$provider" "$model" "$base_url" "${api_key:-}" "$targets_json"
+    ai_info "已更新 profile '$name'"
+}
+
 manage_profiles_menu() {
     local choice profile_name
 
@@ -77,15 +110,19 @@ manage_profiles_menu() {
         printf "\nProfiles\n"
         printf "1) 列出 profiles\n"
         printf "2) 新增 profile\n"
-        printf "3) 选择当前 profile\n"
-        printf "4) 删除 profile\n"
+        printf "3) 查看 profile 详情\n"
+        printf "4) 编辑 profile\n"
+        printf "5) 选择当前 profile\n"
+        printf "6) 删除 profile\n"
         printf "0) 返回\n"
         read -r -p "选择: " choice
         case "$choice" in
             1) list_profiles ;;
             2) add_profile_interactive ;;
-            3) profile_name="$(select_profile_name_interactive)"; set_current_profile "$profile_name"; ai_info "当前 profile: $profile_name" ;;
-            4) profile_name="$(select_profile_name_interactive)"; delete_profile "$profile_name"; ai_info "已删除: $profile_name" ;;
+            3) profile_name="$(select_profile_name_interactive)"; show_profile_detail "$profile_name" ;;
+            4) profile_name="$(select_profile_name_interactive)"; edit_profile_interactive "$profile_name" ;;
+            5) profile_name="$(select_profile_name_interactive)"; set_current_profile "$profile_name"; ai_info "当前 profile: $profile_name" ;;
+            6) profile_name="$(select_profile_name_interactive)"; delete_profile "$profile_name"; ai_info "已删除: $profile_name" ;;
             0) return 0 ;;
             *) ai_warn "无效选项" ;;
         esac
@@ -207,7 +244,11 @@ Usage: $AI_SWITCH_APP_NAME [option]
 Options:
   --list-profiles
   --add-profile NAME PROVIDER MODEL BASE_URL API_KEY TARGETS
+  --add-gemini NAME API_KEY [BASE_URL] [MODEL]
+  --add-glm NAME API_KEY [BASE_URL] [MODEL]
   --import-template TEMPLATE_NAME PROFILE_NAME API_KEY
+  --show-profile NAME
+  --update-profile NAME [PROVIDER] [MODEL] [BASE_URL] [API_KEY] [TARGETS]
   --select-profile NAME
   --delete-profile NAME
   --select-target TARGET

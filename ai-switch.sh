@@ -32,10 +32,33 @@ main() {
             save_profile "$2" "$3" "$4" "$5" "$6" "$7"
             ai_info "已保存 profile '$2'"
             ;;
+        --add-gemini)
+            init_store
+            [[ $# -ge 3 && $# -le 5 ]] || ai_die "用法: --add-gemini NAME API_KEY [BASE_URL] [MODEL]"
+            save_profile "$2" "gemini" "${5:-gemini-2.5-flash}" "${4:-https://generativelanguage.googleapis.com/v1beta/openai}" "$3" '["codex","gemini"]'
+            ai_info "已保存 Gemini profile '$2'"
+            ;;
+        --add-glm)
+            init_store
+            [[ $# -ge 3 && $# -le 5 ]] || ai_die "用法: --add-glm NAME API_KEY [BASE_URL] [MODEL]"
+            save_profile "$2" "openai-compatible" "${5:-glm-5.1}" "${4:-https://api.z.ai/api/paas/v4/}" "$3" '["codex"]'
+            ai_info "已保存 GLM profile '$2'"
+            ;;
         --import-template)
             init_store
             [[ $# -eq 4 ]] || ai_die "用法: --import-template TEMPLATE_NAME PROFILE_NAME API_KEY"
             import_template_noninteractive "$2" "$3" "$4"
+            ;;
+        --show-profile)
+            init_store
+            [[ $# -eq 2 ]] || ai_die "用法: --show-profile NAME"
+            show_profile_detail "$2"
+            ;;
+        --update-profile)
+            init_store
+            [[ $# -ge 2 && $# -le 7 ]] || ai_die "用法: --update-profile NAME [PROVIDER] [MODEL] [BASE_URL] [API_KEY] [TARGETS]"
+            update_profile "$2" "${3:-}" "${4:-}" "${5:-}" "${6:-}" "${7:-}"
+            ai_info "已更新 profile '$2'"
             ;;
         --select-profile)
             init_store

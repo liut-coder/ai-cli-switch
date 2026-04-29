@@ -77,7 +77,11 @@ bash <(curl -fsSL https://raw.githubusercontent.com/liut-coder/ai-cli-switch/mai
 
 ```bash
 ./ai-switch.sh --list-profiles
+./ai-switch.sh --add-gemini gem-work YOUR_GEMINI_KEY https://ai.hybgzs.com/gemini/v1 gemini-2.0-flash-lite
+./ai-switch.sh --add-glm glm-work YOUR_GLM_KEY
 ./ai-switch.sh --import-template gemini-flash gem-work YOUR_API_KEY
+./ai-switch.sh --show-profile gem-work
+./ai-switch.sh --update-profile gem-work gemini gemini-2.5-flash https://your-base/v1 YOUR_KEY '["codex","gemini"]'
 ./ai-switch.sh --select-profile gem-work
 ./ai-switch.sh --select-target gemini
 ./ai-switch.sh --apply

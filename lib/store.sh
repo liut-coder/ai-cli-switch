@@ -20,6 +20,18 @@ get_profile_json() {
     jq -e --arg name "$name" '.[$name]' "$AI_SWITCH_PROFILES_FILE"
 }
 
+show_profile_detail() {
+    local name="$1"
+    local profile
+    profile="$(get_profile_json "$name")"
+    printf "name=%s\n" "$name"
+    printf "provider=%s\n" "$(jq -r '.provider' <<<"$profile")"
+    printf "model=%s\n" "$(jq -r '.model' <<<"$profile")"
+    printf "base_url=%s\n" "$(jq -r '.base_url' <<<"$profile")"
+    printf "api_key=%s\n" "$(jq -r '.api_key' <<<"$profile")"
+    printf "targets=%s\n" "$(jq -c '.targets' <<<"$profile")"
+}
+
 save_profile() {
     local name="$1"
     local provider="$2"
@@ -47,6 +59,27 @@ save_profile() {
         }' \
         "$AI_SWITCH_PROFILES_FILE" > "${AI_SWITCH_PROFILES_FILE}.tmp"
     mv "${AI_SWITCH_PROFILES_FILE}.tmp" "$AI_SWITCH_PROFILES_FILE"
+}
+
+update_profile() {
+    local name="$1"
+    local provider="$2"
+    local model="$3"
+    local base_url="$4"
+    local api_key="$5"
+    local targets_json="$6"
+    local profile
+
+    profile_exists "$name" || ai_die "Profile '$name' 不存在"
+    profile="$(get_profile_json "$name")"
+
+    provider="${provider:-$(jq -r '.provider' <<<"$profile")}"
+    model="${model:-$(jq -r '.model' <<<"$profile")}"
+    base_url="${base_url:-$(jq -r '.base_url' <<<"$profile")}"
+    api_key="${api_key:-$(jq -r '.api_key' <<<"$profile")}"
+    targets_json="${targets_json:-$(jq -c '.targets' <<<"$profile")}"
+
+    save_profile "$name" "$provider" "$model" "$base_url" "$api_key" "$targets_json"
 }
 
 delete_profile() {
