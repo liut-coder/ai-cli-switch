@@ -8,6 +8,7 @@ TARGET_MAIN="$TARGET_DIR/ai-switch"
 DEFAULT_BASE_URL="https://raw.githubusercontent.com/liut-coder/ai-cli-switch/main"
 DOWNLOAD_BASE_URL="${AI_SWITCH_INSTALL_BASE_URL:-$DEFAULT_BASE_URL}"
 TMP_SOURCE=""
+SCRIPT_SOURCE="${BASH_SOURCE[0]}"
 
 log() {
     printf "%s\n" "$1"
@@ -38,7 +39,13 @@ cleanup() {
 resolve_source_script() {
     local local_source="$SCRIPT_DIR/ai-switch.sh"
 
-    if [[ -f "$local_source" ]]; then
+    case "$SCRIPT_SOURCE" in
+        /dev/fd/*|/proc/self/fd/*)
+            local_source=""
+            ;;
+    esac
+
+    if [[ -n "$local_source" && -f "$local_source" ]]; then
         printf "%s\n" "$local_source"
         return 0
     fi
