@@ -63,6 +63,12 @@ bash install.sh
 ./ai-switch.sh
 ```
 
+远程安装：
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/liut-coder/ai-cli-switch/main/install.sh)
+```
+
 ## 非交互用法
 
 ```bash
