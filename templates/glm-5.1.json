@@ -1,0 +1,6 @@
+{
+  "provider": "openai-compatible",
+  "model": "glm-5.1",
+  "base_url": "https://api.z.ai/api/paas/v4/",
+  "targets": ["codex"]
+}

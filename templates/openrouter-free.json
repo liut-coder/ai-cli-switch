@@ -1,0 +1,6 @@
+{
+  "provider": "openrouter",
+  "model": "openrouter/free",
+  "base_url": "https://openrouter.ai/api/v1",
+  "targets": ["codex"]
+}
