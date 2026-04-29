@@ -199,3 +199,88 @@ show_main_menu() {
         printf "\n"
     done
 }
+
+show_help() {
+    cat <<EOF
+Usage: $AI_SWITCH_APP_NAME [option]
+
+Options:
+  --list-profiles
+  --add-profile NAME PROVIDER MODEL BASE_URL API_KEY TARGETS
+  --import-template TEMPLATE_NAME PROFILE_NAME API_KEY
+  --select-profile NAME
+  --delete-profile NAME
+  --select-target TARGET
+  --show-current
+  --apply [PROFILE_NAME]
+  --install [TARGET]
+  --launch [TARGET]
+  --test [PROFILE_NAME]
+  --help
+
+Notes:
+  TARGET 支持: codex, gemini
+  TARGETS 传 JSON 数组，例如: '["codex","gemini"]'
+  TEMPLATE_NAME 例如: gemini-flash, glm-5.1, ollama-local, openrouter-free
+EOF
+}
+
+show_current_state() {
+    printf "current_profile=%s\n" "$(get_current_profile)"
+    printf "current_target=%s\n" "$(get_current_target)"
+}
+
+find_template_by_name() {
+    local name="$1"
+    local file="$AI_SWITCH_SCRIPT_DIR/templates/$name.json"
+    [[ -f "$file" ]] || ai_die "模板不存在: $name"
+    printf "%s\n" "$file"
+}
+
+import_template_noninteractive() {
+    local template_name="$1"
+    local profile_name="$2"
+    local api_key="$3"
+    local file provider model base_url targets_json
+
+    file="$(find_template_by_name "$template_name")"
+    provider="$(jq -r '.provider' "$file")"
+    model="$(jq -r '.model' "$file")"
+    base_url="$(jq -r '.base_url' "$file")"
+    targets_json="$(jq -c '.targets' "$file")"
+
+    save_profile "$profile_name" "$provider" "$model" "$base_url" "$api_key" "$targets_json"
+    ai_info "已导入模板 '$template_name' -> '$profile_name'"
+}
+
+apply_profile_by_name() {
+    local profile_name="$1"
+    [[ -n "$profile_name" ]] || profile_name="$(get_current_profile)"
+    [[ -n "$profile_name" ]] || ai_die "当前没有选中 profile"
+    set_current_profile "$profile_name"
+    apply_current_profile
+}
+
+install_target_by_name() {
+    local target="${1:-}"
+    if [[ -n "$target" ]]; then
+        set_current_target "$target"
+    fi
+    install_current_target
+}
+
+launch_target_by_name() {
+    local target="${1:-}"
+    if [[ -n "$target" ]]; then
+        set_current_target "$target"
+    fi
+    launch_current_target
+}
+
+test_profile_by_name() {
+    local profile_name="${1:-}"
+    if [[ -n "$profile_name" ]]; then
+        set_current_profile "$profile_name"
+    fi
+    test_current_profile
+}

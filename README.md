@@ -51,7 +51,7 @@
 当前仍未完成：
 - `claude` / `deepseek` target 适配
 - 更细分的 provider 探测逻辑
-- 完整命令行参数接口
+- 更多高级命令行参数接口
 
 ## 运行
 
@@ -61,4 +61,22 @@ bash install.sh
 
 # 或直接运行
 ./ai-switch.sh
+```
+
+## 非交互用法
+
+```bash
+./ai-switch.sh --list-profiles
+./ai-switch.sh --import-template gemini-flash gem-work YOUR_API_KEY
+./ai-switch.sh --select-profile gem-work
+./ai-switch.sh --select-target gemini
+./ai-switch.sh --apply
+./ai-switch.sh --install gemini
+./ai-switch.sh --show-current
+```
+
+完整帮助：
+
+```bash
+./ai-switch.sh --help
 ```
