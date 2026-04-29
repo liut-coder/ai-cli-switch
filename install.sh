@@ -60,6 +60,14 @@ main() {
     trap cleanup EXIT
     local source_script
     source_script="$(resolve_source_script)"
+    case "$source_script" in
+        /dev/fd/*|/proc/self/fd/*)
+            TMP_SOURCE="$(mktemp /tmp/ai-switch.XXXXXX)"
+            curl -fsSL "$DOWNLOAD_BASE_URL/ai-switch.sh" -o "$TMP_SOURCE"
+            chmod +x "$TMP_SOURCE"
+            source_script="$TMP_SOURCE"
+            ;;
+    esac
     require_file "$source_script"
     mkdir -p "$TARGET_DIR"
 
