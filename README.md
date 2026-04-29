@@ -69,6 +69,10 @@ bash install.sh
 bash <(curl -fsSL https://raw.githubusercontent.com/liut-coder/ai-cli-switch/main/install.sh)
 ```
 
+安装后会生成：
+- 启动命令：`/usr/local/bin/ai-switch`
+- 运行目录：`/usr/local/lib/ai-cli-switch`
+
 ## 非交互用法
 
 ```bash
